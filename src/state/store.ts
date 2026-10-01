@@ -10,6 +10,9 @@
 
 import { create } from "zustand";
 import { createPartyRuntime } from "@/content/party";
+import { applyCommand, type BattleCommand } from "@/game/combat/actions";
+import { createBattle } from "@/game/combat/core";
+import { getArena } from "@/content/arenas";
 import { Rng, randomSeed } from "@/game/rng";
 import type {
   AlertLevel,
@@ -50,6 +53,14 @@ export interface GameStore extends WorldState {
   loadWorld: (world: WorldState) => void;
   /** Write a scene stamp and push the previous scene into history. */
   enterScene: (sceneId: string) => void;
+
+  /* ── Session 2: the debug arena (GDD §10.2) ── */
+  /** Start a seeded, resettable arena battle — isolated from the run party. */
+  startArenaBattle: (arenaId: string, level: 1 | 2, seed: number) => void;
+  /** Apply one kernel command to the active battle (pure reducer). */
+  battleCommand: (cmd: BattleCommand) => void;
+  /** Leave the battle back to the arena launcher. */
+  exitBattle: () => void;
 }
 
 function freshWorld(): WorldState {
@@ -93,6 +104,18 @@ export const useGameStore = create<GameStore>()((set) => ({
           ? state.sceneHistory
           : [...state.sceneHistory, state.sceneId],
     })),
+
+  startArenaBattle: (arenaId, level, seed) =>
+    set(() => ({
+      battle: createBattle(getArena(arenaId), { level, seed }),
+    })),
+
+  battleCommand: (cmd) =>
+    set((state) => ({
+      battle: state.battle ? applyCommand(state.battle, cmd) : state.battle,
+    })),
+
+  exitBattle: () => set(() => ({ battle: null })),
 }));
 
 /* Typed selectors used across screens. */

@@ -268,3 +268,54 @@
 .ga-tnum {
   font-variant-numeric: tabular-nums;
 }
+
+/* ── Battle beats (GDD §8.4): dice rattle and settle in 400 ms; damage
+   numbers rise and fade over 600 ms. All transforms only, so the
+   reduced-motion rule above collapses them to instant state changes. ── */
+@keyframes ga-dice-rattle {
+  0% { transform: rotate(-24deg) translateY(-10px) scale(0.6); opacity: 0; }
+  22% { transform: rotate(16deg) translateY(0) scale(1.12); opacity: 1; }
+  42% { transform: rotate(-11deg) scale(0.96); }
+  62% { transform: rotate(7deg) scale(1.04); }
+  80% { transform: rotate(-3deg) scale(0.99); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+.ga-dice-face {
+  animation: ga-dice-rattle 400ms cubic-bezier(0.34, 1.4, 0.44, 1) both;
+}
+
+@keyframes ga-mod-slide {
+  0%, 45% { transform: translateX(-14px); opacity: 0; }
+  75% { transform: translateX(2px); opacity: 1; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+.ga-dice-mod {
+  animation: ga-mod-slide 520ms ease-out both;
+}
+
+@keyframes ga-verdict-stamp {
+  0%, 55% { transform: scale(1.6); opacity: 0; }
+  80% { transform: scale(0.94); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.ga-dice-verdict {
+  animation: ga-verdict-stamp 560ms ease-out both;
+}
+
+@keyframes ga-pop-in {
+  0% { transform: translate(-50%, 14px); opacity: 0; }
+  100% { transform: translate(-50%, 0); opacity: 1; }
+}
+.ga-dice-pop {
+  animation: ga-pop-in 240ms ease-out both;
+}
+
+@keyframes ga-floater-rise {
+  0% { transform: translate(-50%, 4px) scale(0.85); opacity: 0; }
+  18% { transform: translate(-50%, -6px) scale(1.12); opacity: 1; }
+  100% { transform: translate(-50%, -30px) scale(1); opacity: 0; }
+}
+.ga-floater {
+  animation: ga-floater-rise 950ms ease-out both;
+  text-shadow: 0 2px 6px rgba(10, 14, 20, 0.9), 0 0 2px rgba(10, 14, 20, 1);
+}

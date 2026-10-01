@@ -13,15 +13,23 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useGameStore } from "@/state/store";
 import { useUiStore } from "@/state/ui-store";
+import { useSyncExternalStore } from "react";
+
+/* Client-only seed snapshot helpers (hydration-safe read). */
+const subscribeNoop = () => () => {};
+const getSeedSnapshot = () => useGameStore.getState().rng.seed;
 
 export function TitleScreen() {
   const newGame = useGameStore((s) => s.newGame);
-  const rng = useGameStore((s) => s.rng);
   const setView = useUiStore((s) => s.setView);
   const setSaveOverlay = useUiStore((s) => s.setSaveOverlay);
   const reducedMotion = useUiStore((s) => s.reducedMotion);
   const setReducedMotion = useUiStore((s) => s.setReducedMotion);
   const { toast } = useToast();
+  // The seed is client-only: freshWorld() draws different seeds on server and
+  // client, so it is read through useSyncExternalStore with a null server
+  // snapshot — the canonical hydration-safe pattern.
+  const seed = useSyncExternalStore(subscribeNoop, getSeedSnapshot, () => null);
 
   const handleNewGame = () => {
     newGame();
@@ -167,6 +175,13 @@ export function TitleScreen() {
           >
             The Party
           </Button>
+          <Button
+            onClick={() => setView("arena")}
+            variant="secondary"
+            className="h-12 w-full border border-dashed border-ember/50 bg-slate-panel font-display text-sm font-bold tracking-[0.22em] text-ember-bright uppercase hover:bg-slate-raised"
+          >
+            Debug Arena
+          </Button>
         </nav>
 
         <p className="mt-8 max-w-md font-prose text-xs leading-relaxed text-mist-dim/80">
@@ -187,7 +202,8 @@ export function TitleScreen() {
             Reduced motion
           </label>
           <p className="text-[11px] tracking-[0.18em] text-mist-dim/70 uppercase">
-            Session 1 · Foundations build · rng seed #{rng.seed}
+            Session 2 · Combat engine
+            {seed !== null && <> · rng seed #{seed}</>}
           </p>
         </div>
       </footer>

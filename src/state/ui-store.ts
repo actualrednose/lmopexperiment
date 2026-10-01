@@ -6,7 +6,7 @@
 import { create } from "zustand";
 import type { HeroId } from "@/game/types";
 
-export type GameView = "title" | "roster";
+export type GameView = "title" | "roster" | "arena";
 
 const REDUCED_MOTION_KEY = "goblin-arrows:reduced-motion";
 

@@ -112,6 +112,10 @@ export interface LevelUpSpec {
   /** One-line summary of the level-2 milestone upgrade. */
   summary: string;
   grants: string[];
+  /** Hit points gained at level 2 (average hit die + CON modifier). */
+  hpGain?: number;
+  /** Spell slots at level 2, when it changes (three for both casters). */
+  slots?: number;
 }
 
 /** A hero's static sheet data — the authoritative Chapter 3 statistics. */
@@ -167,6 +171,8 @@ export interface Combatant {
   side: "party" | "enemy";
   /** HeroId or EnemyId — which sheet/stat block this combatant draws from. */
   ref: HeroId | EnemyId;
+  /** Display name — "Torvald Ironfell", "Goblin B". */
+  name: string;
   hp: number;
   maxHp: number;
   ac: number;
@@ -175,7 +181,37 @@ export interface Combatant {
   position: { x: number; y: number } | null;
   initiative: number;
   spellSlotsUsed: number;
+  /** Maximum spell slots (0 for non-casters). */
+  maxSpellSlots: number;
   resources: Record<string, boolean>;
+
+  /* ── Session 2: turn & status state ── */
+  /** Speed in feet. */
+  speed: number;
+  /** Feet moved this turn. */
+  movementUsed: number;
+  /** Dash uses this turn (each doubles the movement budget). */
+  dashes: number;
+  actionUsed: boolean;
+  bonusActionUsed: boolean;
+  /** One reaction per round (opportunity attacks only — GDD §4.2). */
+  reactionUsed: boolean;
+  /** Dodge action: attacks against this combatant have disadvantage until its next turn. */
+  dodging: boolean;
+  /** Disengage: movement this turn provokes no opportunity attacks. */
+  disengaged: boolean;
+  /** Sleep spell: incapacitated; waking costs the combatant its action. */
+  sleeping: boolean;
+  /** Rounds of Bless remaining (adds +1d4 to attacks and checks). */
+  blessRounds: number;
+  /** Help mark: the next attack against this combatant has advantage. */
+  aided: boolean;
+  /** Guiding Bolt mark: the next attack against this combatant has advantage. */
+  guidingBolt: boolean;
+  /** Morale broken — fleeing toward the map edge. */
+  fleeing: boolean;
+  /** Left the battlefield (fled goblins); ignored by victory checks. */
+  fled: boolean;
 }
 
 export interface BattleLogEntry {
@@ -186,16 +222,27 @@ export interface BattleLogEntry {
   roll?: {
     tag: string;
     d20?: number;
+    /** Every d20 rolled (advantage/disadvantage shows two). */
+    dice?: number[];
     modifier?: number;
     total?: number;
     target?: number;
     success?: boolean;
+    /** Advantage/disadvantage source, named for the UI (GDD §4.1). */
+    mode?: "advantage" | "disadvantage" | null;
+    source?: string;
   };
+  /** Point-of-action effects: damage/heal floaters over tokens. */
+  fx?: { targetId: string; amount: number; kind: "damage" | "heal" }[];
+  /** A completed move, for token hop animation (200 ms per square). */
+  move?: { from: { x: number; y: number }; path: { x: number; y: number }[] };
+  /** Present when the entry should surface as a dice popup. */
+  highlight?: boolean;
 }
 
 /**
- * Self-contained battle state (GDD §9.1). Structural as of Session 1 —
- * the combat kernel implements and refines it in Session 2.
+ * Self-contained battle state (GDD §9.1). The battle owns its RNG cursor
+ * so a fight is exactly reproducible from (seed, arena, party, commands).
  */
 export interface BattleState {
   arenaId: string;
@@ -209,6 +256,44 @@ export interface BattleState {
   combatants: Record<string, Combatant>;
   log: BattleLogEntry[];
   status: BattleStatus;
+
+  /* ── Session 2 ── */
+  /** The battle's own seeded stream — seeded and resettable (GDD §10.2). */
+  rng: RngState;
+  /** Party level snapshot for this battle (arena offers 1 or 2). */
+  partyLevel: 1 | 2;
+  /** Party potion supply (Use an Item: 2d4+2). */
+  potions: number;
+  /** Enemy movers that exited a hero's reach, awaiting the player's reaction. */
+  pendingReactions: PendingReaction[];
+  /** Balance telemetry (GDD §10.2 / Table 15), filled by the kernel. */
+  stats: BattleStats;
+}
+
+/** A hero's pending opportunity attack against a fleeing enemy mover. */
+export interface PendingReaction {
+  /** The hero offered the swing. */
+  attackerId: string;
+  /** The enemy that left the hero's reach. */
+  moverId: string;
+}
+
+/** Counters the seeded simulations and the outcome card read. */
+export interface BattleStats {
+  partyAttacks: number;
+  partyHits: number;
+  enemyAttacks: number;
+  enemyHits: number;
+  /** Per-hero enemy attack counters, keyed by combatant id. */
+  enemyAttacksBy: Record<string, number>;
+  enemyHitsBy: Record<string, number>;
+  /** Total damage the party has taken. */
+  partyDamageTaken: number;
+  partyHealing: number;
+  potionsUsed: number;
+  roundsFought: number;
+  /** Enemies asleep via Sleep, for the outcome card. */
+  sleptEnemies: number;
 }
 
 /* ══════════════════════════ World & saves ══════════════════════════ */

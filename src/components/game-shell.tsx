@@ -7,15 +7,19 @@
  */
 
 import { useEffect } from "react";
+import { ArenaLauncher } from "@/components/battle/arena-launcher";
+import { BattleScreen } from "@/components/battle/battle-screen";
 import { PartyIntro } from "@/components/story/party-intro";
 import { TitleScreen } from "@/components/story/title-screen";
 import { CharacterSheetOverlay } from "@/components/ui/character-sheet";
 import { SaveLoadOverlay } from "@/components/ui/save-load";
+import { useGameStore } from "@/state/store";
 import { useUiStore } from "@/state/ui-store";
 
 export function GameShell() {
   const view = useUiStore((s) => s.view);
   const hydratePreferences = useUiStore((s) => s.hydratePreferences);
+  const battle = useGameStore((s) => s.battle);
 
   useEffect(() => {
     hydratePreferences();
@@ -23,7 +27,10 @@ export function GameShell() {
 
   return (
     <div className="game-root min-h-screen bg-slate-deep font-sans text-mist">
-      {view === "title" ? <TitleScreen /> : <PartyIntro />}
+      {view === "title" && <TitleScreen />}
+      {view === "roster" && <PartyIntro />}
+      {view === "arena" &&
+        (battle ? <BattleScreen /> : <ArenaLauncher />)}
 
       {/* overlays */}
       <CharacterSheetOverlay />

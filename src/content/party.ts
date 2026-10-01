@@ -69,6 +69,7 @@ const torvald: HeroSheet = {
   level2: {
     summary: "Action Surge",
     grants: ["One extra action on a turn, once per battle."],
+    hpGain: 9,
   },
 };
 
@@ -129,6 +130,7 @@ const perrin: HeroSheet = {
   level2: {
     summary: "Cunning Action",
     grants: ["Dash, Disengage or Hide as a bonus action."],
+    hpGain: 6,
   },
 };
 
@@ -216,6 +218,8 @@ const maera: HeroSheet = {
   level2: {
     summary: "Third spell slot",
     grants: ["Three spell slots per long rest (up from two)."],
+    hpGain: 7,
+    slots: 3,
   },
 };
 
@@ -315,6 +319,8 @@ const elyndra: HeroSheet = {
       "Three spell slots per long rest (up from two).",
       "Prepares Misty Step (bonus action, teleport 30 ft).",
     ],
+    hpGain: 6,
+    slots: 3,
   },
 };
 
@@ -327,19 +333,29 @@ export function getHeroSheet(id: HeroId): HeroSheet {
   return sheet;
 }
 
-/** Fresh runtime state for a new game — full HP, all resources banked. */
-export function createPartyRuntime(): Record<HeroId, HeroRuntime> {
+/** Fresh runtime state for a new game — full HP, all resources banked.
+ *
+ * Level 2 applies the Chapter 3 milestone: the hit-point increase (average
+ * hit die + CON), a third spell slot for both casters, and the level-2
+ * feature resources (Action Surge, Cunning Action). */
+export function createPartyRuntime(level: 1 | 2 = 1): Record<HeroId, HeroRuntime> {
   const runtime = {} as Record<HeroId, HeroRuntime>;
   for (const sheet of PARTY) {
+    const maxHp = sheet.hp + (level >= 2 ? sheet.level2.hpGain ?? 0 : 0);
+    const resources: Record<string, boolean> =
+      sheet.id === "torvald" ? { secondWind: true } : {};
+    if (level >= 2) {
+      if (sheet.id === "torvald") resources.actionSurge = true;
+      if (sheet.id === "perrin") resources.cunningAction = true;
+    }
     runtime[sheet.id] = {
       heroId: sheet.id,
-      level: sheet.level,
-      hp: sheet.hp,
-      maxHp: sheet.hp,
+      level,
+      hp: maxHp,
+      maxHp,
       spellSlotsUsed: 0,
       conditions: [],
-      resources:
-        sheet.id === "torvald" ? { secondWind: true } : {},
+      resources,
     };
   }
   return runtime;
