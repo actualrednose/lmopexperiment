@@ -137,6 +137,8 @@ export interface HeroSheet {
   hp: number;
   /** Speed in feet. */
   speed: number;
+  /** Hit-die sides for short rests (GDD §4.5): d10/d8/d8/d6 by class. */
+  hitDie: 10 | 8 | 6;
   abilities: Abilities;
   attacks: Attack[];
   /** Present for casters only. */

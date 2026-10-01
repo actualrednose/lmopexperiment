@@ -31,6 +31,7 @@ const torvald: HeroSheet = {
   acNote: "chain mail and shield",
   hp: 13,
   speed: 25,
+  hitDie: 10,
   abilities: { STR: 16, DEX: 10, CON: 16, INT: 10, WIS: 12, CHA: 10 },
   attacks: [
     {
@@ -86,6 +87,7 @@ const perrin: HeroSheet = {
   acNote: "leather armor",
   hp: 10,
   speed: 25,
+  hitDie: 8,
   abilities: { STR: 8, DEX: 16, CON: 12, INT: 12, WIS: 13, CHA: 13 },
   attacks: [
     {
@@ -147,6 +149,7 @@ const maera: HeroSheet = {
   acNote: "chain mail and shield",
   hp: 10,
   speed: 30,
+  hitDie: 8,
   abilities: { STR: 14, DEX: 10, CON: 14, INT: 10, WIS: 16, CHA: 12 },
   attacks: [
     {
@@ -236,6 +239,7 @@ const elyndra: HeroSheet = {
   acNote: "15 with mage armor",
   hp: 8,
   speed: 30,
+  hitDie: 6,
   abilities: { STR: 8, DEX: 16, CON: 14, INT: 16, WIS: 12, CHA: 10 },
   attacks: [],
   spells: [

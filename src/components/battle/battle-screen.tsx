@@ -22,7 +22,7 @@ import { heroLegality, mistyStepDestinations, reachableTiles } from "@/game/comb
 import type { BattleCommand } from "@/game/combat/actions";
 import { useGameStore } from "@/state/store";
 import type { Point } from "@/game/grid";
-import { Copy, DoorOpen, Swords } from "lucide-react";
+import { BookOpen, Copy, DoorOpen, Swords } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 export function BattleScreen() {
@@ -30,7 +30,12 @@ export function BattleScreen() {
   const battleCommand = useGameStore((s) => s.battleCommand);
   const exitBattle = useGameStore((s) => s.exitBattle);
   const startArenaBattle = useGameStore((s) => s.startArenaBattle);
+  const battleOrigin = useGameStore((s) => s.battleOrigin);
+  const resolveStoryBattle = useGameStore((s) => s.resolveStoryBattle);
   const setView = useUiSetView();
+  // Story battles belong to the run: no retreat, no rematch — the fight
+  // must resolve, then the runner routes the aftermath (GDD §10.3).
+  const isStory = battleOrigin === "story";
 
   const [mode, setMode] = useState<TargetingMode>({ kind: "none" });
   const [pendingTargets, setPendingTargets] = useState<string[]>([]);
@@ -140,17 +145,24 @@ export function BattleScreen() {
     <div className="game-root flex min-h-screen flex-col bg-slate-deep">
       {/* ── Header ── */}
       <header className="flex items-center gap-3 border-b border-slate-line bg-slate-panel/60 px-3 py-2">
-        <button
-          type="button"
-          onClick={() => {
-            exitBattle();
-            setView("arena");
-          }}
-          className="flex items-center gap-1.5 rounded-md border border-slate-line bg-slate-panel px-2.5 py-1.5 text-[11px] font-semibold tracking-wide text-mist uppercase transition-colors hover:bg-slate-raised"
-        >
-          <DoorOpen className="h-3.5 w-3.5" aria-hidden="true" />
-          Arena
-        </button>
+        {isStory ? (
+          <span className="flex items-center gap-1.5 rounded-md border border-ember/40 bg-ember/10 px-2.5 py-1.5 text-[11px] font-semibold tracking-wide text-ember-bright uppercase">
+            <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
+            Story
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              exitBattle();
+              setView("arena");
+            }}
+            className="flex items-center gap-1.5 rounded-md border border-slate-line bg-slate-panel px-2.5 py-1.5 text-[11px] font-semibold tracking-wide text-mist uppercase transition-colors hover:bg-slate-raised"
+          >
+            <DoorOpen className="h-3.5 w-3.5" aria-hidden="true" />
+            Arena
+          </button>
+        )}
         <div className="min-w-0 flex-1">
           <h1 className="truncate font-display text-sm font-bold text-parchment">
             {arena.title}
@@ -323,37 +335,52 @@ export function BattleScreen() {
             </dl>
 
             <div className="mt-5 flex flex-col gap-2">
-              <button
-                type="button"
-                className="w-full rounded-md bg-ember px-4 py-2.5 font-display text-sm font-bold tracking-[0.18em] text-slate-deep uppercase transition-colors hover:bg-ember-bright"
-                onClick={() => {
-                  startArenaBattle(battle.arenaId, battle.partyLevel, battle.rng.seed);
-                  setSelectedId(null);
-                }}
-              >
-                Rematch — same seed
-              </button>
-              <button
-                type="button"
-                className="w-full rounded-md border-2 border-ink/25 px-4 py-2.5 font-display text-sm font-bold tracking-[0.18em] text-ink uppercase transition-colors hover:bg-ink/5"
-                onClick={() => {
-                  const seed = Math.floor(Math.random() * 4294967296);
-                  startArenaBattle(battle.arenaId, battle.partyLevel, seed);
-                  setSelectedId(null);
-                }}
-              >
-                Rematch — new seed
-              </button>
-              <button
-                type="button"
-                className="w-full rounded-md border-2 border-ink/25 px-4 py-2 font-display text-xs font-bold tracking-[0.18em] text-ink-soft uppercase transition-colors hover:bg-ink/5"
-                onClick={() => {
-                  exitBattle();
-                  setView("arena");
-                }}
-              >
-                Back to the arena
-              </button>
+              {isStory ? (
+                <button
+                  type="button"
+                  className="w-full rounded-md bg-ember px-4 py-2.5 font-display text-sm font-bold tracking-[0.18em] text-slate-deep uppercase transition-colors hover:bg-ember-bright"
+                  onClick={() => {
+                    resolveStoryBattle();
+                    setSelectedId(null);
+                  }}
+                >
+                  {outcome === "victory" ? "Continue the story" : "The run ends here"}
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="w-full rounded-md bg-ember px-4 py-2.5 font-display text-sm font-bold tracking-[0.18em] text-slate-deep uppercase transition-colors hover:bg-ember-bright"
+                    onClick={() => {
+                      startArenaBattle(battle.arenaId, battle.partyLevel, battle.rng.seed);
+                      setSelectedId(null);
+                    }}
+                  >
+                    Rematch — same seed
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full rounded-md border-2 border-ink/25 px-4 py-2.5 font-display text-sm font-bold tracking-[0.18em] text-ink uppercase transition-colors hover:bg-ink/5"
+                    onClick={() => {
+                      const seed = Math.floor(Math.random() * 4294967296);
+                      startArenaBattle(battle.arenaId, battle.partyLevel, seed);
+                      setSelectedId(null);
+                    }}
+                  >
+                    Rematch — new seed
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full rounded-md border-2 border-ink/25 px-4 py-2 font-display text-xs font-bold tracking-[0.18em] text-ink-soft uppercase transition-colors hover:bg-ink/5"
+                    onClick={() => {
+                      exitBattle();
+                      setView("arena");
+                    }}
+                  >
+                    Back to the arena
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

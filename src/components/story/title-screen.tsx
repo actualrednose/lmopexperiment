@@ -21,6 +21,7 @@ const getSeedSnapshot = () => useGameStore.getState().rng.seed;
 
 export function TitleScreen() {
   const newGame = useGameStore((s) => s.newGame);
+  const runActive = useGameStore((s) => s.sceneId !== null);
   const setView = useUiStore((s) => s.setView);
   const setSaveOverlay = useUiStore((s) => s.setSaveOverlay);
   const reducedMotion = useUiStore((s) => s.reducedMotion);
@@ -32,7 +33,17 @@ export function TitleScreen() {
   const seed = useSyncExternalStore(subscribeNoop, getSeedSnapshot, () => null);
 
   const handleNewGame = () => {
-    newGame();
+    // QA hook: /?seed=12345 pins the run's RNG (GDD §9.2 — a seed in the
+    // URL reproduces the exact game).
+    let pinnedSeed: number | undefined;
+    try {
+      const param = new URLSearchParams(window.location.search).get("seed");
+      const parsed = param === null ? NaN : Number.parseInt(param, 10);
+      if (Number.isFinite(parsed)) pinnedSeed = parsed >>> 0;
+    } catch {
+      // no URLSearchParams — random seed
+    }
+    newGame(pinnedSeed);
     toast({
       title: "A new run begins",
       description: `The dice are cast from seed #${useGameStore
@@ -161,6 +172,15 @@ export function TitleScreen() {
           >
             New Game
           </Button>
+          {runActive && (
+            <Button
+              onClick={() => setView("story")}
+              variant="secondary"
+              className="h-12 w-full border border-ember/50 bg-slate-panel font-display text-sm font-bold tracking-[0.22em] text-ember-bright uppercase hover:bg-slate-raised"
+            >
+              Resume the Run
+            </Button>
+          )}
           <Button
             onClick={() => setSaveOverlay(true)}
             variant="secondary"
@@ -202,7 +222,7 @@ export function TitleScreen() {
             Reduced motion
           </label>
           <p className="text-[11px] tracking-[0.18em] text-mist-dim/70 uppercase">
-            Session 2 · Combat engine
+            Session 3 · Exploration engine &amp; Acts I–II
             {seed !== null && <> · rng seed #{seed}</>}
           </p>
         </div>

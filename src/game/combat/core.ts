@@ -30,6 +30,7 @@ import type {
   ConditionName,
   EnemyId,
   HeroId,
+  HeroRuntime,
   HeroSheet,
 } from "@/game/types";
 
@@ -157,12 +158,30 @@ export interface CreateBattleOptions {
   seed: number;
   /** Party HP override (fraction of max), for simulation variants; default full. */
   startHpFraction?: number;
+  /**
+   * Session 3: snapshot from the live run party (story battles) instead of a
+   * fresh sheet — carries level, current HP, spent slots and resources, so
+   * the ambush is part of the continuous run. `level` is then derived from
+   * the party and must match.
+   */
+  party?: Record<HeroId, HeroRuntime>;
+  /** Session 3: potion supply override (story battles carry the inventory's). */
+  potions?: number;
 }
 
 export function createBattle(arena: ArenaDef, opts: CreateBattleOptions): BattleState {
   const rng = new Rng(opts.seed >>> 0);
-  const party = createPartyRuntime(opts.level);
-  if (opts.startHpFraction !== undefined && opts.startHpFraction < 1) {
+  if (opts.party) {
+    const levels = new Set(PARTY_ORDER.map((id) => opts.party![id].level));
+    if (levels.size !== 1) throw new Error("createBattle: run party has mixed levels");
+    if (opts.party.torvald.level !== opts.level) {
+      throw new Error("createBattle: opts.level does not match the run party");
+    }
+  }
+  const party = opts.party
+    ? structuredClone(opts.party)
+    : createPartyRuntime(opts.level);
+  if (!opts.party && opts.startHpFraction !== undefined && opts.startHpFraction < 1) {
     for (const id of PARTY_ORDER) {
       const rt = party[id];
       rt.hp = Math.max(1, Math.round(rt.maxHp * opts.startHpFraction));
@@ -181,7 +200,7 @@ export function createBattle(arena: ArenaDef, opts: CreateBattleOptions): Battle
     status: "active",
     rng: rng.getCursor(),
     partyLevel: opts.level,
-    potions: arena.potions,
+    potions: opts.potions ?? arena.potions,
     pendingReactions: [],
     stats: emptyStats(),
   };
@@ -206,7 +225,8 @@ export function createBattle(arena: ArenaDef, opts: CreateBattleOptions): Battle
       conditions: [],
       position: { ...spawn },
       initiative: 0,
-      spellSlotsUsed: 0,
+      // Carried from the run party (story battles); fresh parties start clean.
+      spellSlotsUsed: rt.spellSlotsUsed,
       maxSpellSlots: slots,
       resources: { ...rt.resources },
       speed: sheet.speed,

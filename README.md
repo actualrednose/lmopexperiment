@@ -11,7 +11,7 @@ A turn-based tactical RPG adapting the opening act of the Dungeons & Dragons Sta
 
 ## Status
 
-Session 1 of 6 (Foundations & Character Sheets) is complete — title screen, party roster, full character sheets, seeded RNG and the versioned save schema are live. See [SESSIONS.md](./SESSIONS.md) for the roadmap and per-session acceptance criteria, and [docs/Goblin_Arrows_Game_Design_and_Build_Plan.docx](./docs/Goblin_Arrows_Game_Design_and_Build_Plan.docx) for the complete specification the build follows. Next up: Session 2, the combat engine.
+Sessions 1–3 of 6 are complete — foundations & character sheets, the full combat engine (debug arena), and the exploration engine with Acts I–II playable end to end: from the title screen through Gundren's job offer, the camp, the dead horses, the four-goblin ambush battle hooked into the run, the aftermath branches, the goblin trail, and the level-2 milestone at the hideout door. See [SESSIONS.md](./SESSIONS.md) for the roadmap and per-session acceptance criteria, and [docs/Goblin_Arrows_Game_Design_and_Build_Plan.docx](./docs/Goblin_Arrows_Game_Design_and_Build_Plan.docx) for the complete specification the build follows. Next up: Session 4, Cragmaw Hideout part A.
 
 ## Run it
 
@@ -25,14 +25,14 @@ bun test           # engine unit tests (src/tests)
 
 ```
 docs/             the game design document (GDD) — the authoritative spec
-src/game/         rules kernel: core types, seeded RNG, dice helpers
-src/content/      typed data: the four hero sheets (scenes & bestiary land in later sessions)
+src/game/         rules kernel: core types, seeded RNG, dice helpers, grid & combat, the scene runner, the content linter
+src/content/      typed data: hero sheets, bestiary, arenas, items, the Act I–II scene graph
 src/state/        Zustand game store + versioned save schema (3 slots + autosave)
-src/components/   story screens, overlays and shared vector UI (hero tokens, dice icons, character sheet)
-src/tests/        unit tests for the RNG kernel and content sanity
+src/components/   story & battle screens, overlays and shared vector UI (tokens, tableaus, dice, sheets)
+src/tests/        unit, content-lint, balance-sim and story-run acceptance tests
 ```
 
-Per the GDD's architecture: pure engine, dumb components, typed content. Battle logic lands as pure reducers in `src/game/` in Session 2; scene content lands in `src/content/` in Session 3.
+Per the GDD's architecture: pure engine, dumb components, typed content. Battle logic is pure reducers in `src/game/combat`; the story runs on the scene runner over typed scene records in `src/content/story.ts`, validated by the content linter so the Session 4–5 dungeon drops stay boring.
 
 ## Credits & note
 

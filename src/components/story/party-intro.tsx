@@ -10,13 +10,13 @@
 import { Button } from "@/components/ui/button";
 import { HeroToken } from "@/components/ui/hero-token";
 import { PARTY } from "@/content/party";
-import { useToast } from "@/hooks/use-toast";
+import { useGameStore } from "@/state/store";
 import { useUiStore } from "@/state/ui-store";
 
 export function PartyIntro() {
   const setView = useUiStore((s) => s.setView);
   const openSheet = useUiStore((s) => s.openSheet);
-  const { toast } = useToast();
+  const beginStory = useGameStore((s) => s.beginStory);
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-deep">
@@ -107,26 +107,20 @@ export function PartyIntro() {
 
         <div className="mx-auto mt-8 max-w-md text-center">
           <Button
-            onClick={() =>
-              toast({
-                title: "Act I — The Road from Neverwinter",
-                description:
-                  "The story engine arrives in Session 3. The party is assembled, the sheets are live, and the dice are seeded.",
-              })
-            }
+            onClick={() => beginStory()}
             className="h-12 w-full bg-ember font-display text-sm font-bold tracking-[0.22em] text-slate-deep uppercase hover:bg-ember-bright"
           >
             Begin Act I
           </Button>
           <p className="mt-2 text-[11px] tracking-wider text-mist-dim/70 uppercase">
-            Story engine lands in Session 3 — foundations first
+            The wagon rolls east — the story begins
           </p>
         </div>
       </main>
 
       <footer className="mt-auto border-t border-slate-line/50 px-4 py-3">
         <p className="mx-auto max-w-5xl text-center text-[11px] tracking-[0.18em] text-mist-dim/60 uppercase">
-          Goblin Arrows · Session 1 · Foundations &amp; character sheets
+          Goblin Arrows · Session 3 · Exploration engine &amp; Acts I–II
         </p>
       </footer>
     </div>
