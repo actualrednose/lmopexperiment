@@ -11,7 +11,7 @@ A turn-based tactical RPG adapting the opening act of the Dungeons & Dragons Sta
 
 ## Status
 
-Session 1 of 6 (Foundations & Character Sheets) is in progress. See [SESSIONS.md](./SESSIONS.md) for the roadmap and per-session acceptance criteria, and [docs/Goblin_Arrows_Game_Design_and_Build_Plan.docx](./docs/Goblin_Arrows_Game_Design_and_Build_Plan.docx) for the complete specification the build follows.
+Session 1 of 6 (Foundations & Character Sheets) is complete — title screen, party roster, full character sheets, seeded RNG and the versioned save schema are live. See [SESSIONS.md](./SESSIONS.md) for the roadmap and per-session acceptance criteria, and [docs/Goblin_Arrows_Game_Design_and_Build_Plan.docx](./docs/Goblin_Arrows_Game_Design_and_Build_Plan.docx) for the complete specification the build follows. Next up: Session 2, the combat engine.
 
 ## Run it
 

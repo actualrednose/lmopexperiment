@@ -6,8 +6,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+  --font-prose: var(--font-lora), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -41,6 +42,37 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Goblin Arrows — locked palette (GDD §8.4, change-controlled)
+   deep slate #1A2330 chrome · parchment #F5EFE2 prose ·
+   burnt orange #D4875A accents · fire #C4573F · radiant #D9A93F ·
+   healing #7C9A5C · arcane #9079B8
+   ──────────────────────────────────────────────────────────────── */
+@theme {
+  /* slate chrome ramp */
+  --color-slate-deep: #1a2330;
+  --color-slate-panel: #232e3f;
+  --color-slate-raised: #2c3a50;
+  --color-slate-line: #3a4a66;
+  /* parchment & ink */
+  --color-parchment: #f5efe2;
+  --color-parchment-dim: #e7dec8;
+  --color-ink: #2a251c;
+  --color-ink-soft: #6a6050;
+  /* text on slate */
+  --color-mist: #ede7d9;
+  --color-mist-dim: #a8b2c4;
+  /* interactive accent (burnt orange) */
+  --color-ember: #d4875a;
+  --color-ember-bright: #e8a97c;
+  --color-ember-deep: #b9703f;
+  /* element accents */
+  --color-fire: #c4573f;
+  --color-radiant: #d9a93f;
+  --color-healing: #7c9a5c;
+  --color-arcane: #9079b8;
 }
 
 :root {
@@ -112,6 +144,30 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Game root — the whole game renders inside .game-root on deep slate.
+   shadcn variables are re-scoped to the graphite-orange system so every
+   shared component (Dialog, Button, Switch…) matches the locked palette. */
+.game-root {
+  --background: #1a2330;
+  --foreground: #ede7d9;
+  --card: #232e3f;
+  --card-foreground: #ede7d9;
+  --popover: #26313f;
+  --popover-foreground: #ede7d9;
+  --primary: #d4875a;
+  --primary-foreground: #1a2330;
+  --secondary: #2c3a50;
+  --secondary-foreground: #ede7d9;
+  --muted: #2c3a50;
+  --muted-foreground: #a8b2c4;
+  --accent: #2c3a50;
+  --accent-foreground: #f5efe2;
+  --destructive: #c4573f;
+  --border: #3a4a66;
+  --input: #3a4a66;
+  --ring: #d4875a;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -119,4 +175,96 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ── Reduced motion: first-class toggle (GDD §8.4) ──
+   The toggle writes data-ga-reduced-motion="true" on <html>; every
+   animation collapses to an instant state change. */
+[data-ga-reduced-motion="true"] *,
+[data-ga-reduced-motion="true"] *::before,
+[data-ga-reduced-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ── Scrollbars for in-game scroll panels ── */
+.ga-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #3a4a66 transparent;
+}
+.ga-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.ga-scroll::-webkit-scrollbar-thumb {
+  background: #3a4a66;
+  border-radius: 4px;
+}
+.ga-scroll::-webkit-scrollbar-thumb:hover {
+  background: #4a5c7d;
+}
+.ga-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ── Parchment surface with a faint fiber texture ── */
+.ga-parchment {
+  background-color: #f5efe2;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(42, 37, 28, 0.022) 0px,
+      rgba(42, 37, 28, 0.022) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(42, 37, 28, 0.016) 0px,
+      rgba(42, 37, 28, 0.016) 1px,
+      transparent 1px,
+      transparent 9px
+    );
+}
+
+/* ── Slate panel with a subtle top highlight ── */
+.ga-panel {
+  background:
+    linear-gradient(180deg, rgba(237, 231, 217, 0.03), transparent 40%),
+    #232e3f;
+}
+
+/* ── Title screen: slow tableau drift (killed by reduced motion above) ── */
+@keyframes ga-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -8px, 0);
+  }
+}
+.ga-drift {
+  animation: ga-drift 9s ease-in-out infinite;
+}
+
+@keyframes ga-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.ga-glow {
+  animation: ga-glow 4.5s ease-in-out infinite;
+}
+
+/* Tabular numerals everywhere a die result or stat renders (GDD §8.4) */
+.ga-tnum {
+  font-variant-numeric: tabular-nums;
 }
