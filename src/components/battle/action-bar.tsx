@@ -31,7 +31,7 @@ import { useState } from "react";
 import type { TargetingMode } from "./battle-grid";
 
 const btn =
-  "inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-slate-line bg-slate-panel px-2.5 text-[11px] font-semibold tracking-wide text-mist uppercase transition-colors hover:bg-slate-raised disabled:pointer-events-none disabled:opacity-35 aria-disabled:pointer-events-none aria-disabled:opacity-35";
+  "inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-slate-line bg-slate-panel px-2.5 text-[11px] font-semibold tracking-wide text-mist uppercase transition-[background-color,border-color,color,transform] duration-150 hover:bg-slate-raised active:scale-95 disabled:pointer-events-none disabled:opacity-35 aria-disabled:pointer-events-none aria-disabled:opacity-35";
 
 export interface ActionBarProps {
   battle: BattleState;
@@ -422,7 +422,7 @@ function Popover({
     <div
       role="dialog"
       aria-label={title}
-      className="ga-panel absolute bottom-full left-2 right-2 z-30 mb-2 rounded-lg border border-slate-line p-2 shadow-[0_10px_36px_rgba(10,14,20,0.65)]"
+      className="ga-panel ga-rise-in absolute bottom-full left-2 right-2 z-30 mb-2 rounded-lg border border-slate-line p-2 shadow-[0_10px_36px_rgba(10,14,20,0.65)]"
     >
       <div className="mb-1 flex items-center justify-between px-1">
         <p className="text-[10px] font-bold tracking-[0.18em] text-ember-bright uppercase">

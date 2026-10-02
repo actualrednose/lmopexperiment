@@ -5,6 +5,10 @@
  * the four heroes' HP at all times — token, HP bar, numbers, caster slots
  * and the level chip that flips at the milestone. Chips open the character
  * sheet overlay.
+ *
+ * Animation pass: each HP bar carries a fire-tinted ghost layer that holds
+ * the pre-damage width for a beat, then drains — the fighting-game damage
+ * tell, pure presentation over the same runtime numbers.
  */
 
 import { HeroToken } from "@/components/ui/hero-token";
@@ -13,6 +17,7 @@ import { PARTY_ORDER } from "@/content/party";
 import { useGameStore } from "@/state/store";
 import { useUiStore } from "@/state/ui-store";
 import { cn } from "@/lib/utils";
+import { useEffect, useRef, useState } from "react";
 import type { HeroRuntime } from "@/game/types";
 
 export function PartyStrip() {
@@ -57,9 +62,10 @@ export function PartyStrip() {
                 </span>
               </div>
               <div className="flex w-full items-center gap-1">
-                <div className="h-1.5 w-14 overflow-hidden rounded-full bg-slate-deep" style={{ width: 56 }}>
+                <div className="relative h-1.5 w-14 overflow-hidden rounded-full bg-slate-deep" style={{ width: 56 }}>
+                  <HpGhost hp={rt.hp} maxHp={rt.maxHp} />
                   <div
-                    className={cn("h-full rounded-full transition-all", hpBarClass(rt))}
+                    className={cn("absolute inset-y-0 left-0 rounded-full transition-all", hpBarClass(rt))}
                     style={{ width: `${Math.max(0, (rt.hp / rt.maxHp) * 100)}%` }}
                   />
                 </div>
@@ -79,6 +85,34 @@ const FIRST_NAMES: Record<HeroRuntime["heroId"], string> = {
   maera: "Maera",
   elyndra: "Elyndra",
 };
+
+/**
+ * The trailing damage ghost: holds the previous width for ~380 ms when HP
+ * drops, then eases down to the new value — so damage lands with a tell
+ * instead of the bar silently snapping. Heals follow immediately.
+ */
+function HpGhost({ hp, maxHp }: { hp: number; maxHp: number }) {
+  const [ghost, setGhost] = useState(hp);
+  const prevRef = useRef(hp);
+
+  useEffect(() => {
+    const hold = hp < prevRef.current ? 380 : 0;
+    prevRef.current = hp;
+    const t = setTimeout(() => setGhost(hp), hold);
+    return () => clearTimeout(t);
+  }, [hp]);
+
+  return (
+    <div
+      aria-hidden="true"
+      className="absolute inset-y-0 left-0 rounded-full bg-fire/60"
+      style={{
+        width: `${Math.max(0, (ghost / maxHp) * 100)}%`,
+        transition: "width 600ms ease-out",
+      }}
+    />
+  );
+}
 
 function firstName(id: HeroRuntime["heroId"]): string {
   return FIRST_NAMES[id];

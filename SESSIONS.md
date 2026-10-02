@@ -7,6 +7,7 @@ The complete plan lives in the [design document](./docs/Goblin_Arrows_Game_Desig
 | 1 | Foundations & character sheets | App boots to a title screen; four full hero sheets browsable | ✅ Complete |
 | 2 | Combat engine | Complete tactical fights in a debug arena against goblins and wolves | ✅ Complete |
 | 3 | Exploration engine & Acts I–II | Playable from title screen to the hideout door with branching checks | ✅ Complete |
+| — | Animation pass (interstitial) | Movement, attack and UI motion across both screens | ✅ Complete |
 | 4 | Hideout part A | Areas H1–H4 and H8 playable: stealth, wolves, the flood, alert states | ⬜ Planned |
 | 5 | Hideout part B & endings | The full game is completable, all endings reachable | ⬜ Planned |
 | 6 | Polish, balance & ship | Release candidate deployed on the preview link | ⬜ Planned |
@@ -86,3 +87,27 @@ The complete plan lives in the [design document](./docs/Goblin_Arrows_Game_Desig
 - *The trail's failure routes forward, not back* — a failed Survival check still finds the hideout; it costs surprise (alert starts at Suspicious) exactly as §6.2 specifies.
 
 **Principal risk & guard**: prose volume tempting the session into writing instead of engineering — mitigated as specified: prose drafted to the tight 80–160-word template (lint-enforced), the scene contract frozen before any dungeon prose is written, and refinement deferred to the Session 6 polish pass.
+
+## Animation Pass — Movement, Attacks & UI Polish (interstitial, pre-Session 4)
+
+**Scope** (user-requested polish between Sessions 3 and 4): give the game presentability-grade motion — path-following token movement, attack choreography (lunges, projectiles, impacts, crits), and UI transitions — without touching the frozen rules kernel, the determinism contract, or the save schema.
+
+**Acceptance criteria** (all verified — 116/116 unit tests including the new strike-metadata suite, ESLint clean, TypeScript clean, and three browser E2E runs with zero page/console errors):
+
+- [x] Movement animates along the walked path: tokens step square by square at the locked 200 ms/square beat instead of sliding straight to their destination (E2E: walk transition observed live mid-move over a 72-tile reachable field).
+- [x] Attacks carry point-of-action choreography: melee attackers lunge toward the target and struck tokens shake (crits burst a radiant double-ring and shake the whole field); missed targets slip the blow with a sidestep sway (E2E: hero-initiated Shortsword strike live at +130 ms; enemy melee strikes live during later beats).
+- [x] Ranged attacks loose arced projectiles with per-flavor art — black-fletched arrows (shortbow), an ember mote (Fire Bolt), a radiant teardrop (Sacred Flame), arcane darts (Magic Missile) — with impact rings timed to the landing (E2E: the round-1 goblin volley's arrow projectile observed live at poll 2).
+- [x] Misty Step dissolves into a silver ghost at the origin and reforms with a fade-in scale; a fleeing token's last step off the map edge fades to nothing; the walker never slides on teleports (the transition is walk-gated).
+- [x] UI motion lands across both screens: battle/story/game-over view entrances, victory/defeat card entrance with a title stamp, initiative chip pop when the spotlight lands, action-bar popover rise and button press feedback, HP pips cross-fading, the story tableau cross-fading per scene, prose fading in, choice cards cascading with a 55 ms stagger and lifting on hover, rest/milestone panels popping in, the party strip's HP bars gaining a fire-tinted damage ghost that holds then drains, and the check-overlay backdrop fading.
+- [x] The reduced-motion toggle collapses every new effect to an instant state change — the pre-existing global `[data-ga-reduced-motion]` rule covers all of it; nothing animates when the toggle is on.
+- [x] Determinism and saves are untouched: the kernel change is purely additive log metadata, no new RNG draws, the save schema and the seven-field world picker unchanged (asserted by the existing determinism and save suites staying green).
+
+**Delivered**: additive `BattleLogEntry.strike` (attacker, target, melee, hit, crit, projectile flavor) emitted by the shared attack pipeline, Sacred Flame's save and every Magic Missile dart, and `BattleLogEntry.teleport` on Misty Step — UI-only metadata, never consumed by rules; `Point` moved to its canonical home in `src/game/types.ts` (grid re-exports; no cycle); the motion hooks module — `src/components/battle/token-motion.ts` (the path-following `useWalkPosition` stepper, `strikeRoleFor`/`latestStrike` matchers, and the imperative `useKeyedClass` restart used for the crit field-shake so the grid never remounts mid-walk); the strike layer — `src/components/battle/strike-fx.tsx` (projectiles with arc + rotation via CSS custom properties, impact and crit rings, the Misty Step ghost, the flee ghost); the token refactor in `battle-grid.tsx` into `TokenSprite` with a position wrapper (walk) nested over a keyed motion wrapper (lunge/recoil/shake/dodge/teleport-in) so each log entry replays exactly once; ~20 new compositor-only keyframes in `globals.css` (transform/opacity exclusively, timed to the 650 ms enemy beat); UI pass across `battle-screen`, `initiative-rail`, `action-bar`, `story-screen`, `party-strip`, `check-overlay`, `game-over`; and the strike-metadata test suite (`src/tests/strike-fx.test.ts`) pinning the emitter contract including its negative space (damage/move/buff entries never carry strikes).
+
+**Animation-pass rulings** (change-controlled):
+
+- *The log is the animation bus* — every effect derives from log entries within a small trailing window and self-expires; no effect body ever touches game state. This is the same discipline as the dice popup and floaters, now the pattern for all combat motion.
+- *`strike`/`teleport` metadata is presentational and additive* — the frozen action list, the RNG draw order and the save schema are untouched; the metadata is pinned by tests (including which entries must NOT carry it) so later sessions cannot silently break the animation contract.
+- *The hop beat stays locked at 200 ms per square* (GDD §8.4 motion tokens) — the change is from a single straight-line slide to true path-following steps, not a new beat; the dodge/shake/lunge durations sit inside the 650 ms enemy beat so enemy turns stay readable.
+- *Crits are the only field-shake trigger* — the screen-flinch effect is deliberately rationed to critical hits so the field never jitters continuously.
+- *Ghost HP shows damage, not healing* — the party strip's trailing bar holds 380 ms on HP loss then drains over 600 ms; heals track instantly (a growing ghost would read as a bug, not a tell).

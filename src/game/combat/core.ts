@@ -615,6 +615,20 @@ export function resolveAttack(
         mode: adv.mode,
         source: adv.source ?? undefined,
       },
+      strike: {
+        attackerId: attacker.id,
+        targetId: target.id,
+        melee: atkCtx.melee,
+        hit,
+        crit: isCrit,
+        flavor: atkCtx.melee
+          ? undefined
+          : attack.name === "Fire Bolt"
+            ? "fire"
+            : attack.name === "Guiding Bolt"
+              ? "radiant"
+              : "arrow",
+      },
       highlight: true,
     }
   );

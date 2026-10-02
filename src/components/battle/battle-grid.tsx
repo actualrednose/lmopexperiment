@@ -5,18 +5,26 @@
  * circular vector tokens, HP pips under each frame, movement and targeting
  * highlights, terrain and cover objects — all positioned with pure CSS
  * transforms so motion stays cheap and the reduced-motion toggle works.
+ *
+ * The animation pass (after Session 3) layers log-derived choreography on
+ * top: tokens walk their BFS path square by square, melee attackers lunge
+ * and struck tokens shake, ranged attacks loose arced projectiles, crits
+ * burst and shake the field, Misty Step dissolves into a ghost, and a
+ * fleeing token's last step fades to nothing. Everything derives from
+ * battle-log entries (token-motion.ts, strike-fx.tsx) and self-expires —
+ * no effect body ever touches game state.
  */
 
 import { TokenConditions } from "@/components/battle/condition-icons";
 import { EnemyToken } from "@/components/battle/enemy-token";
 import { HeroToken } from "@/components/ui/hero-token";
+import { FleeGhost, StrikeFx, TeleportGhost } from "@/components/battle/strike-fx";
 import { getArena } from "@/content/arenas";
 import { chebyshev, type Point } from "@/game/grid";
 import { isDown } from "@/game/combat/core";
 import type { BattleState, Combatant } from "@/game/types";
-import { useEffect, useMemo, useState } from "react";
-
-/* (useRef intentionally absent: floater lifecycle is log-derived + self-expiring) */
+import { latestStrike, strikeRoleFor, useKeyedClass, useWalkPosition } from "./token-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export type TargetingMode =
   | { kind: "none" }
@@ -71,16 +79,48 @@ export function BattleGrid({
     return out;
   }, [battle.log]);
 
-  // Token hop timing (GDD §8.4: 200 ms per square), derived purely from
-  // the log — the latest move entry for each actor names its path length.
-  const lastMoves = useMemo(() => {
-    const map = new Map<string, number>();
+  // Crits shake the whole field — an imperative one-shot class on the
+  // root (useKeyedClass), restarted per crit so the grid never remounts
+  // mid-walk.
+  const critStrike = useMemo(() => {
+    const s = latestStrike(battle.log, 8);
+    return s?.crit ? s : null;
+  }, [battle.log]);
+  const gridRef = useRef<HTMLDivElement>(null);
+  useKeyedClass(
+    gridRef,
+    critStrike ? critStrike.index : null,
+    "ga-grid-shake",
+    700,
+    critStrike?.melee ? 150 : 330
+  );
+
+  // The Misty Step ghost: silver silhouette dissolving at the origin.
+  const tpGhost = useMemo(() => {
     for (let i = battle.log.length - 1; i >= Math.max(0, battle.log.length - 8); i--) {
       const e = battle.log[i];
-      if (e.move && !map.has(e.actor)) map.set(e.actor, e.move.path.length);
+      if (e.teleport) {
+        const c = Object.values(battle.combatants).find((x) => x.name === e.actor);
+        return { index: i, tp: e.teleport, heroId: c?.side === "party" ? c.ref : undefined, enemyRef: c?.side === "enemy" ? c.ref : undefined };
+      }
     }
-    return map;
-  }, [battle.log]);
+    return null;
+  }, [battle.log, battle.combatants]);
+
+  // A fleeing token's last step off the map edge, fading to nothing.
+  const fleeGhost = useMemo(() => {
+    for (let i = battle.log.length - 1; i >= Math.max(0, battle.log.length - 8); i--) {
+      const e = battle.log[i];
+      const m = e.move;
+      if (!m || m.path.length === 0) continue;
+      const last = m.path[m.path.length - 1];
+      const off = last.x < 0 || last.y < 0 || last.x >= battle.width || last.y >= battle.height;
+      if (!off) continue;
+      const c = Object.values(battle.combatants).find((x) => x.name === e.actor);
+      return { index: i, from: m.from, to: last, heroId: c?.side === "party" ? c.ref : undefined, enemyRef: c?.side === "enemy" ? c.ref : undefined };
+    }
+    return null;
+  }, [battle.log, battle.combatants, battle.width, battle.height]);
 
   const activeId = battle.order[battle.activeIndex];
   const targetingIds = new Set(
@@ -91,6 +131,7 @@ export function BattleGrid({
 
   return (
     <div
+      ref={gridRef}
       className="relative mx-auto"
       style={
         {
@@ -175,103 +216,39 @@ export function BattleGrid({
       {/* ── Tokens ── */}
       {Object.values(battle.combatants).map((c) => {
         if (!c.position || c.fled) return null;
-        const hopMs = Math.min(800, Math.max(0, (lastMoves.get(c.name) ?? 0) * 200));
         const isActive = c.id === activeId && battle.status === "active";
         const isTargetable = targetingIds.has(c.id);
-        const isPending = pendingTargets.includes(c.id);
-        const down = isDown(c);
-        const dimOthers =
-          (mode.kind === "attack" ||
-            mode.kind === "spell" ||
-            mode.kind === "help" ||
-            mode.kind === "item") &&
-          !isTargetable;
         return (
-          <div
+          <TokenSprite
             key={c.id}
-            className="absolute"
-            style={{
-              transform: `translate(calc(var(--ga-ts) * ${c.position.x}), calc(var(--ga-ts) * ${c.position.y}))`,
-              width: "var(--ga-ts)",
-              height: "var(--ga-ts)",
-              transition: `transform ${hopMs}ms cubic-bezier(0.45, 0.05, 0.35, 1.4)`,
-              zIndex: isActive ? 20 : 10,
-            }}
-          >
-            <div
-              role="button"
-              tabIndex={0}
-              aria-label={`${c.name}, ${c.hp} of ${c.maxHp} hit points`}
-              className={`relative flex h-full w-full cursor-pointer items-center justify-center rounded-full outline-none transition-all ${
-                isTargetable ? "hover:scale-110" : ""
-              } ${dimOthers ? "opacity-45" : ""}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onTokenClick(c.id);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onTokenClick(c.id);
-                }
-              }}
-            >
-              {/* active / target rings */}
-              {isActive && (
-                <span className="ga-glow pointer-events-none absolute inset-[6%] rounded-full border-2 border-ember" />
-              )}
-              {isTargetable && (
-                <span className="pointer-events-none absolute inset-[2%] animate-pulse rounded-full border-2 border-ember-bright" />
-              )}
-              {selectedId === c.id && (
-                <span className="pointer-events-none absolute inset-[4%] rounded-full border-2 border-parchment/70" />
-              )}
-              {isPending && (
-                <span className="pointer-events-none absolute inset-0 rounded-full bg-ember/25" />
-              )}
-
-              <span
-                className={`relative flex items-center justify-center transition-all ${
-                  down ? "opacity-45 grayscale" : ""
-                } ${c.fleeing ? "animate-pulse" : ""}`}
-              >
-                {c.side === "party" ? (
-                  <HeroToken
-                    heroId={c.ref as "torvald"}
-                    size={undefined}
-                    className="h-[86%] w-[86%]"
-                  />
-                ) : (
-                  <EnemyToken
-                    ref_={c.ref as "goblin"}
-                    size={undefined}
-                    className="h-[86%] w-[86%]"
-                  />
-                )}
-                <TokenConditions c={c} />
-              </span>
-
-              {/* HP pips under the frame (numeric for big pools) */}
-              {c.maxHp > 14 ? (
-                <span className="ga-tnum pointer-events-none absolute -bottom-[5px] left-1/2 -translate-x-1/2 rounded-sm bg-slate-deep/85 px-1 text-[9px] font-bold text-mist">
-                  {c.hp}/{c.maxHp}
-                </span>
-              ) : (
-                <span className="pointer-events-none absolute -bottom-[3px] left-1/2 flex w-[92%] -translate-x-1/2 flex-wrap justify-center gap-[2px]">
-                  {pips(c).map((filled, i) => (
-                    <span
-                      key={i}
-                      className={`h-[4px] w-[4px] rounded-full ${
-                        filled ? "bg-healing" : "bg-slate-line/70"
-                      }`}
-                    />
-                  ))}
-                </span>
-              )}
-            </div>
-          </div>
+            battle={battle}
+            c={c}
+            isActive={isActive}
+            isTargetable={isTargetable}
+            isPending={pendingTargets.includes(c.id)}
+            isSelected={selectedId === c.id}
+            dimOthers={
+              (mode.kind === "attack" ||
+                mode.kind === "spell" ||
+                mode.kind === "help" ||
+                mode.kind === "item") &&
+              !isTargetable
+            }
+            onTokenClick={onTokenClick}
+          />
         );
       })}
+
+      {/* ── Attack choreography: projectiles, impacts, crit bursts ── */}
+      <StrikeFx battle={battle} />
+
+      {/* ── Ghosts: teleport origin & fleeing last step ── */}
+      {tpGhost && (
+        <TeleportGhost index={tpGhost.index} from={tpGhost.tp.from} heroId={tpGhost.heroId} enemyRef={tpGhost.enemyRef} />
+      )}
+      {fleeGhost && (
+        <FleeGhost index={fleeGhost.index} from={fleeGhost.from} to={fleeGhost.to} heroId={fleeGhost.heroId} enemyRef={fleeGhost.enemyRef} />
+      )}
 
       {/* ── Damage / heal floaters ── */}
       {recentFx.map((f) => {
@@ -287,6 +264,170 @@ export function BattleGrid({
           />
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * One token with its full motion stack (animation pass): the position
+ * wrapper walks the latest move path at the locked 200 ms beat, the
+ * keyed motion wrapper inside it carries the strike choreography
+ * (lunge / recoil / shake / dodge / teleport-in) — each new log entry
+ * remounts the wrapper so its CSS animation plays exactly once.
+ */
+function TokenSprite({
+  battle,
+  c,
+  isActive,
+  isTargetable,
+  isPending,
+  isSelected,
+  dimOthers,
+  onTokenClick,
+}: {
+  battle: BattleState;
+  c: Combatant;
+  isActive: boolean;
+  isTargetable: boolean;
+  isPending: boolean;
+  isSelected: boolean;
+  dimOthers: boolean;
+  onTokenClick: (id: string) => void;
+}) {
+  const { pos, walking } = useWalkPosition(battle.log, c.name, c.position);
+
+  // Strike choreography: the newest strike this token takes part in.
+  const strikeInfo = strikeRoleFor(battle.log, c.id);
+  // Teleport reform: the newest Misty Step by this actor.
+  let tpIndex: number | null = null;
+  for (let i = battle.log.length - 1; i >= Math.max(0, battle.log.length - 8); i--) {
+    if (battle.log[i].teleport && battle.log[i].actor === c.name) {
+      tpIndex = i;
+      break;
+    }
+  }
+
+  // The newest event wins (a Misty Step followed by Fire Bolt telegraphs both,
+  // in order — the later strike re-keys the wrapper).
+  const useTp = tpIndex != null && (strikeInfo == null || tpIndex > strikeInfo.index);
+
+  let motionClass = "";
+  let motionDelay: string | undefined;
+  let motionVars: React.CSSProperties = {};
+  let motionKey: string | number = "idle";
+
+  if (useTp) {
+    motionClass = "ga-tp-in";
+    motionKey = `tp${tpIndex}`;
+  } else if (strikeInfo) {
+    const s = strikeInfo;
+    const other =
+      battle.combatants[s.role === "attacker" ? s.targetId : s.attackerId];
+    const dx = other?.position && pos ? other.position.x - pos.x : 0;
+    const dy = other?.position && pos ? other.position.y - pos.y : 0;
+    motionVars = { "--ga-ldx": dx, "--ga-ldy": dy } as React.CSSProperties;
+    motionKey = `st${s.index}`;
+    if (s.role === "attacker") {
+      motionClass = s.melee ? "ga-lunge" : "ga-recoil";
+    } else if (s.hit) {
+      motionClass = s.crit ? "ga-crit-shake" : "ga-hit-shake";
+      motionDelay = s.melee ? "150ms" : "330ms";
+    } else {
+      motionClass = "ga-dodge";
+      motionDelay = s.melee ? "200ms" : "380ms";
+    }
+  }
+
+  const down = isDown(c);
+
+  return (
+    <div
+      className="absolute"
+      style={{
+        transform: `translate(calc(var(--ga-ts) * ${pos?.x ?? 0}), calc(var(--ga-ts) * ${pos?.y ?? 0}))`,
+        width: "var(--ga-ts)",
+        height: "var(--ga-ts)",
+        transition: walking ? "transform 200ms cubic-bezier(0.35, 0, 0.65, 1)" : undefined,
+        zIndex: isActive ? 20 : 10,
+      }}
+    >
+      <div
+        key={motionKey}
+        className={`h-full w-full ${motionClass}`}
+        style={{ ...motionVars, animationDelay: motionDelay }}
+      >
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label={`${c.name}, ${c.hp} of ${c.maxHp} hit points`}
+          className={`relative flex h-full w-full cursor-pointer items-center justify-center rounded-full outline-none transition-all ${
+            isTargetable ? "hover:scale-110" : ""
+          } ${dimOthers ? "opacity-45" : ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onTokenClick(c.id);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onTokenClick(c.id);
+            }
+          }}
+        >
+          {/* active / target rings */}
+          {isActive && (
+            <span className="ga-glow pointer-events-none absolute inset-[6%] rounded-full border-2 border-ember" />
+          )}
+          {isTargetable && (
+            <span className="pointer-events-none absolute inset-[2%] animate-pulse rounded-full border-2 border-ember-bright" />
+          )}
+          {isSelected && (
+            <span className="pointer-events-none absolute inset-[4%] rounded-full border-2 border-parchment/70" />
+          )}
+          {isPending && (
+            <span className="pointer-events-none absolute inset-0 rounded-full bg-ember/25" />
+          )}
+
+          <span
+            className={`relative flex items-center justify-center transition-all ${
+              down ? "opacity-45 grayscale" : ""
+            } ${c.fleeing ? "animate-pulse" : ""}`}
+          >
+            {c.side === "party" ? (
+              <HeroToken
+                heroId={c.ref as "torvald"}
+                size={undefined}
+                className="h-[86%] w-[86%]"
+              />
+            ) : (
+              <EnemyToken
+                ref_={c.ref as "goblin"}
+                size={undefined}
+                className="h-[86%] w-[86%]"
+              />
+            )}
+            <TokenConditions c={c} />
+          </span>
+
+          {/* HP pips under the frame (numeric for big pools) */}
+          {c.maxHp > 14 ? (
+            <span className="ga-tnum pointer-events-none absolute -bottom-[5px] left-1/2 -translate-x-1/2 rounded-sm bg-slate-deep/85 px-1 text-[9px] font-bold text-mist">
+              {c.hp}/{c.maxHp}
+            </span>
+          ) : (
+            <span className="pointer-events-none absolute -bottom-[3px] left-1/2 flex w-[92%] -translate-x-1/2 flex-wrap justify-center gap-[2px]">
+              {pips(c).map((filled, i) => (
+                <span
+                  key={i}
+                  className={`h-[4px] w-[4px] rounded-full transition-colors duration-300 ${
+                    filled ? "bg-healing" : "bg-slate-line/70"
+                  }`}
+                />
+              ))}
+            </span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

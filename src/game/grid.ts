@@ -78,10 +78,10 @@ export interface ArenaDef {
 
 /* ══════════════════════════ Geometry ══════════════════════════ */
 
-export interface Point {
-  x: number;
-  y: number;
-}
+/* Point now lives in ./types (grid cannot import types without a cycle);
+   re-exported here for every module that already imports it from grid. */
+export type { Point } from "./types";
+import type { Point } from "./types";
 
 export const chebyshev = (a: Point, b: Point): number =>
   Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));

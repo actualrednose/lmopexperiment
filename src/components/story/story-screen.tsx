@@ -80,7 +80,7 @@ export function StoryScreen() {
   const noteHolds = (p: ScenePredicate) => predicateHolds(world, p);
 
   return (
-    <div className="game-root flex min-h-screen flex-col bg-slate-deep">
+    <div className="game-root ga-view-in flex min-h-screen flex-col bg-slate-deep">
       {/* ── Header: act, party strip, alert, inventory, save ── */}
       <header className="flex flex-wrap items-center gap-2 border-b border-slate-line bg-slate-panel/60 px-2.5 py-2 sm:gap-3 sm:px-3">
         <button
@@ -130,7 +130,10 @@ export function StoryScreen() {
           className="relative h-[32vh] shrink-0 overflow-hidden border-b border-slate-line lg:h-auto lg:w-[55%] lg:border-b-0 lg:border-r"
           aria-hidden="true"
         >
-          <SceneTableau spec={scene.tableau} />
+          {/* keyed by scene so each new tableau crossfades in (animation pass) */}
+          <div key={sceneId} className="ga-scene-fade absolute inset-0">
+            <SceneTableau spec={scene.tableau} />
+          </div>
           <p className="absolute bottom-2.5 left-3 rounded-md bg-slate-deep/70 px-2 py-1 font-prose text-[11px] text-mist-dim italic backdrop-blur-sm">
             {scene.location}
           </p>
@@ -138,7 +141,10 @@ export function StoryScreen() {
 
         <section className="ga-scroll min-h-0 flex-1 overflow-y-auto" aria-label="Scene prose and choices">
           <div className="mx-auto flex max-w-2xl flex-col gap-4 p-4 sm:p-6">
-            <article className="ga-parchment rounded-xl border border-slate-line/50 p-5 text-ink shadow-[0_14px_44px_rgba(10,14,20,0.4)] sm:p-6">
+            <article
+              key={sceneId}
+              className="ga-prose-in ga-parchment rounded-xl border border-slate-line/50 p-5 text-ink shadow-[0_14px_44px_rgba(10,14,20,0.4)] sm:p-6"
+            >
               <p className="font-display text-[10px] font-bold tracking-[0.28em] text-ink-soft uppercase">
                 {scene.location}
               </p>
@@ -164,9 +170,10 @@ export function StoryScreen() {
             {scene.milestone && <MilestonePanel />}
 
             <nav aria-label="Scene choices" className="grid gap-2.5">
-              {visibleChoices.map((choice) => (
+              {visibleChoices.map((choice, i) => (
                 <ChoiceCard
                   key={choice.id}
+                  index={i}
                   choice={choice}
                   onCommit={() => commitChoice(scene.id, choice.id)}
                 />
@@ -209,7 +216,16 @@ function checkIconKey(label: string, attack: boolean): string {
   return label in SKILL_ICONS ? label : "default";
 }
 
-function ChoiceCard({ choice, onCommit }: { choice: SceneChoice; onCommit: () => void }) {
+function ChoiceCard({
+  choice,
+  index,
+  onCommit,
+}: {
+  choice: SceneChoice;
+  /** Stagger index for the cascade-in (animation pass). */
+  index: number;
+  onCommit: () => void;
+}) {
   const check = choice.check ? previewCheck(choice.check) : null;
   const isBattle = Boolean(choice.battle);
   const isRest = (choice.effects ?? []).some((e) => e.kind === "shortRest");
@@ -218,7 +234,8 @@ function ChoiceCard({ choice, onCommit }: { choice: SceneChoice; onCommit: () =>
     <button
       type="button"
       onClick={onCommit}
-      className="group ga-panel rounded-lg border border-slate-line p-4 text-left transition-all hover:border-ember/60 hover:bg-slate-raised active:translate-y-px"
+      style={{ "--ga-i": index } as React.CSSProperties}
+      className="ga-choice-in group ga-panel rounded-lg border border-slate-line p-4 text-left transition-[border-color,background-color,transform] hover:-translate-y-0.5 hover:border-ember/60 hover:bg-slate-raised active:translate-y-0"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -287,7 +304,7 @@ function shortName(name: string): string {
 
 function RestPanel({ rolls }: { rolls: RestRoll[] }) {
   return (
-    <div className="mt-4 rounded-lg border border-ink/15 bg-ink/5 p-3">
+    <div className="ga-panel-pop mt-4 rounded-lg border border-ink/15 bg-ink/5 p-3">
       <p className="font-display text-[10px] font-bold tracking-[0.22em] text-ink-soft uppercase">
         Short rest — the fire&apos;s rolls
       </p>
@@ -318,7 +335,7 @@ function MilestonePanel() {
   return (
     <section
       aria-label="The level-2 milestone"
-      className="ga-parchment rounded-xl border-2 border-ember/60 p-5 text-ink shadow-[0_14px_44px_rgba(10,14,20,0.4)] sm:p-6"
+      className="ga-panel-pop ga-parchment rounded-xl border-2 border-ember/60 p-5 text-ink shadow-[0_14px_44px_rgba(10,14,20,0.4)] sm:p-6"
     >
       <p className="font-display text-[10px] font-bold tracking-[0.28em] text-ink-soft uppercase">
         The road&apos;s wages

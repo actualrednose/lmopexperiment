@@ -11,7 +11,7 @@ A turn-based tactical RPG adapting the opening act of the Dungeons & Dragons Sta
 
 ## Status
 
-Sessions 1–3 of 6 are complete — foundations & character sheets, the full combat engine (debug arena), and the exploration engine with Acts I–II playable end to end: from the title screen through Gundren's job offer, the camp, the dead horses, the four-goblin ambush battle hooked into the run, the aftermath branches, the goblin trail, and the level-2 milestone at the hideout door. See [SESSIONS.md](./SESSIONS.md) for the roadmap and per-session acceptance criteria, and [docs/Goblin_Arrows_Game_Design_and_Build_Plan.docx](./docs/Goblin_Arrows_Game_Design_and_Build_Plan.docx) for the complete specification the build follows. Next up: Session 4, Cragmaw Hideout part A.
+Sessions 1–3 of 6 are complete — foundations & character sheets, the full combat engine (debug arena), and the exploration engine with Acts I–II playable end to end: from the title screen through Gundren's job offer, the camp, the dead horses, the four-goblin ambush battle hooked into the run, the aftermath branches, the goblin trail, and the level-2 milestone at the hideout door. An interstitial animation pass then added presentability-grade motion on top: path-following token walks, attack choreography (lunges, arced projectiles, crit bursts, field shake), and UI transitions across both screens — all log-derived, compositor-only, and collapsed by the reduced-motion toggle. See [SESSIONS.md](./SESSIONS.md) for the roadmap and per-session acceptance criteria, and [docs/Goblin_Arrows_Game_Design_and_Build_Plan.docx](./docs/Goblin_Arrows_Game_Design_and_Build_Plan.docx) for the complete specification the build follows. Next up: Session 4, Cragmaw Hideout part A.
 
 ## Run it
 

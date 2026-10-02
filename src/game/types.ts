@@ -6,6 +6,15 @@
  * (src/content), the store (src/state) and the screens (src/components).
  */
 
+/* ══════════════════════════ Geometry ══════════════════════════ */
+
+/** A grid position in 5-foot squares. Canonical home: here, so both the
+ *  kernel types and the grid module share one definition (grid re-exports). */
+export interface Point {
+  x: number;
+  y: number;
+}
+
 /* ══════════════════════════ Abilities & skills ══════════════════════════ */
 
 export type AbilityKey = "STR" | "DEX" | "CON" | "INT" | "WIS" | "CHA";
@@ -237,7 +246,25 @@ export interface BattleLogEntry {
   /** Point-of-action effects: damage/heal floaters over tokens. */
   fx?: { targetId: string; amount: number; kind: "damage" | "heal" }[];
   /** A completed move, for token hop animation (200 ms per square). */
-  move?: { from: { x: number; y: number }; path: { x: number; y: number }[] };
+  move?: { from: Point; path: Point[] };
+  /**
+   * Point-of-action strike data for attack animations (UI-only metadata,
+   * added in the animation pass after Session 3): who swung or shot at
+   * whom, whether it connected, and how it should look. Emitted by the
+   * shared attack pipeline, Sacred Flame's save and each Magic Missile
+   * dart — never consumes RNG.
+   */
+  strike?: {
+    attackerId: string;
+    targetId: string;
+    melee: boolean;
+    hit: boolean;
+    crit: boolean;
+    /** Ranged projectile art for the UI. */
+    flavor?: "arrow" | "fire" | "radiant" | "dart";
+  };
+  /** A completed teleport (Misty Step): fade-out ghost and reform. */
+  teleport?: { from: Point; to: Point };
   /** Present when the entry should surface as a dice popup. */
   highlight?: boolean;
 }

@@ -20,8 +20,8 @@ export function GameOverScreen() {
   const s = stats?.stats;
 
   return (
-    <div className="game-root flex min-h-screen items-center justify-center bg-slate-deep p-4">
-      <div className="ga-parchment w-full max-w-md rounded-2xl border-4 border-fire/60 p-6 text-ink shadow-[0_24px_80px_rgba(10,14,20,0.8)]">
+    <div className="game-root ga-view-in flex min-h-screen items-center justify-center bg-slate-deep p-4">
+      <div className="ga-overlay-in ga-parchment w-full max-w-md rounded-2xl border-4 border-fire/60 p-6 text-ink shadow-[0_24px_80px_rgba(10,14,20,0.8)]">
         <div className="flex flex-col items-center text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-fire/15">
             <Skull className="h-6 w-6 text-fire" aria-hidden="true" />

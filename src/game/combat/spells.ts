@@ -127,6 +127,14 @@ function sacredFlame(ctx: KernelCtx, caster: Combatant, target: Combatant | null
         mode: null,
         source: "Sacred Flame",
       },
+      strike: {
+        attackerId: caster.id,
+        targetId: target.id,
+        melee: false,
+        hit: fails,
+        crit: false,
+        flavor: "radiant",
+      },
       highlight: true,
     }
   );
@@ -318,7 +326,15 @@ function magicMissile(ctx: KernelCtx, caster: Combatant, targetIds: string[]): S
       ctx,
       caster.name,
       `Magic Missile dart ${dart + 1} unerringly strikes ${t.name} — ${damage} force damage.`,
-      { fx: [{ targetId: t.id, amount: damage, kind: "damage" }] }
+      { fx: [{ targetId: t.id, amount: damage, kind: "damage" }],
+        strike: {
+          attackerId: caster.id,
+          targetId: t.id,
+          melee: false,
+          hit: true,
+          crit: false,
+          flavor: "dart",
+        } }
     );
     applyDamage(ctx, caster, t, damage, "Magic Missile");
   }
@@ -385,7 +401,8 @@ function mistyStep(
     `Misty Step: she dissolves into silver mist and reforms ${distanceFeet(
       caster.position,
       to
-    )} feet away.`
+    )} feet away.`,
+    { teleport: { from: { ...caster.position }, to: { ...to } } }
   );
   caster.position = { ...to };
   return { ok: true };

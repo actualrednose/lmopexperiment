@@ -39,24 +39,31 @@ export function InitiativeRail({ battle }: { battle: BattleState }) {
             } ${out ? "opacity-40 grayscale" : ""}`}
             title={c.name}
           >
-            <div className="shrink-0">
-              {c.side === "party" ? (
-                <HeroToken heroId={c.ref as "torvald"} size={26} />
-              ) : (
-                <EnemyToken ref_={c.ref as "goblin"} size={26} />
-              )}
-            </div>
-            <div className="min-w-0 leading-tight">
-              <p
-                className={`truncate text-[11px] font-semibold ${
-                  c.side === "party" ? "text-mist" : "text-ember-bright/90"
-                } ${c.fled ? "line-through" : ""}`}
-              >
-                {c.name.split(" ")[0]}
-              </p>
-              <p className="ga-tnum text-[10px] text-mist-dim">
-                init {c.initiative >= 0 ? `+${c.initiative}` : c.initiative}
-              </p>
+            {/* keyed by activation so the pop replays each time the
+                spotlight lands (animation pass) */}
+            <div
+              key={active ? "live" : "idle"}
+              className={`flex min-w-0 items-center gap-2 ${active ? "ga-chip-pop" : ""}`}
+            >
+              <div className="shrink-0">
+                {c.side === "party" ? (
+                  <HeroToken heroId={c.ref as "torvald"} size={26} />
+                ) : (
+                  <EnemyToken ref_={c.ref as "goblin"} size={26} />
+                )}
+              </div>
+              <div className="min-w-0 leading-tight">
+                <p
+                  className={`truncate text-[11px] font-semibold ${
+                    c.side === "party" ? "text-mist" : "text-ember-bright/90"
+                  } ${c.fled ? "line-through" : ""}`}
+                >
+                  {c.name.split(" ")[0]}
+                </p>
+                <p className="ga-tnum text-[10px] text-mist-dim">
+                  init {c.initiative >= 0 ? `+${c.initiative}` : c.initiative}
+                </p>
+              </div>
             </div>
           </div>
         );

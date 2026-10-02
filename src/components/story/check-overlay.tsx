@@ -47,11 +47,11 @@ function CheckOverlayInner({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-deep/85 p-4 backdrop-blur-sm"
+      className="ga-fade-in fixed inset-0 z-50 flex items-center justify-center bg-slate-deep/85 p-4 backdrop-blur-sm"
       role="alert"
       aria-live="assertive"
     >
-      <div className="ga-parchment w-full max-w-md rounded-2xl border-4 p-6 text-ink shadow-[0_24px_80px_rgba(10,14,20,0.8)]"
+      <div className="ga-overlay-in ga-parchment w-full max-w-md rounded-2xl border-4 p-6 text-ink shadow-[0_24px_80px_rgba(10,14,20,0.8)]"
         style={{ borderColor: check.success ? "rgba(124,154,92,0.6)" : "rgba(196,87,63,0.6)" }}
       >
         <p className="text-center font-display text-[11px] font-bold tracking-[0.3em] text-ink-soft uppercase">

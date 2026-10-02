@@ -142,7 +142,7 @@ export function BattleScreen() {
     battle.status === "victory" || battle.status === "defeat" ? battle.status : null;
 
   return (
-    <div className="game-root flex min-h-screen flex-col bg-slate-deep">
+    <div className="game-root ga-view-in flex min-h-screen flex-col bg-slate-deep">
       {/* ── Header ── */}
       <header className="flex items-center gap-3 border-b border-slate-line bg-slate-panel/60 px-3 py-2">
         {isStory ? (
@@ -293,12 +293,12 @@ export function BattleScreen() {
 
       {/* ── Outcome overlay ── */}
       {outcome && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-deep/85 p-4 backdrop-blur-sm">
-          <div className="ga-parchment w-full max-w-md rounded-2xl border-4 border-ember/50 p-6 text-ink shadow-[0_24px_80px_rgba(10,14,20,0.8)]">
+        <div className="ga-fade-in fixed inset-0 z-50 flex items-center justify-center bg-slate-deep/85 p-4 backdrop-blur-sm">
+          <div className="ga-overlay-in ga-parchment w-full max-w-md rounded-2xl border-4 border-ember/50 p-6 text-ink shadow-[0_24px_80px_rgba(10,14,20,0.8)]">
             <p className="text-center font-display text-[11px] font-bold tracking-[0.3em] text-ink-soft uppercase">
               {outcome === "victory" ? "The road is cleared" : "Total party kill"}
             </p>
-            <h2 className="mt-1 text-center font-display text-3xl font-extrabold tracking-wide">
+            <h2 className="ga-title-stamp mt-1 text-center font-display text-3xl font-extrabold tracking-wide">
               {outcome === "victory" ? "Victory" : "Defeat"}
             </h2>
             <p className="mt-2 text-center font-prose text-sm text-ink-soft italic">
